@@ -1,0 +1,121 @@
+{
+	"name": "ds_menucsv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "menu.csv",
+				"container": "input"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Category",
+				"type": "String"
+			},
+			{
+				"name": "Item",
+				"type": "String"
+			},
+			{
+				"name": "Serving Size",
+				"type": "String"
+			},
+			{
+				"name": "Calories",
+				"type": "String"
+			},
+			{
+				"name": "Calories from Fat",
+				"type": "String"
+			},
+			{
+				"name": "Total Fat",
+				"type": "String"
+			},
+			{
+				"name": "Total Fat (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Saturated Fat",
+				"type": "String"
+			},
+			{
+				"name": "Saturated Fat (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Trans Fat",
+				"type": "String"
+			},
+			{
+				"name": "Cholesterol",
+				"type": "String"
+			},
+			{
+				"name": "Cholesterol (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Sodium",
+				"type": "String"
+			},
+			{
+				"name": "Sodium (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Carbohydrates",
+				"type": "String"
+			},
+			{
+				"name": "Carbohydrates (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Dietary Fiber",
+				"type": "String"
+			},
+			{
+				"name": "Dietary Fiber (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Sugars",
+				"type": "String"
+			},
+			{
+				"name": "Protein",
+				"type": "String"
+			},
+			{
+				"name": "Vitamin A (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Vitamin C (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Calcium (% Daily Value)",
+				"type": "String"
+			},
+			{
+				"name": "Iron (% Daily Value)",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

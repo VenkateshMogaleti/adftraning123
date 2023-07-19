@@ -1,0 +1,193 @@
+{
+	"name": "df_menu",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_menucsv",
+						"type": "DatasetReference"
+					},
+					"name": "source"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_sqldb166",
+						"type": "DatasetReference"
+					},
+					"name": "loadedintosqldb"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_bloboutput",
+						"type": "DatasetReference"
+					},
+					"name": "BLOBsink"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_foodmenu",
+						"type": "DatasetReference"
+					},
+					"name": "SQLsink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "sort1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "window2"
+				},
+				{
+					"name": "filter2"
+				},
+				{
+					"name": "sort2"
+				},
+				{
+					"name": "select4"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Category as string,",
+				"          Item as string,",
+				"          {Serving Size} as string,",
+				"          Calories as short,",
+				"          {Calories from Fat} as short,",
+				"          {Total Fat} as double,",
+				"          {Total Fat (% Daily Value)} as short,",
+				"          {Saturated Fat} as double,",
+				"          {Saturated Fat (% Daily Value)} as short,",
+				"          {Trans Fat} as double,",
+				"          Cholesterol as short,",
+				"          {Cholesterol (% Daily Value)} as short,",
+				"          Sodium as short,",
+				"          {Sodium (% Daily Value)} as short,",
+				"          Carbohydrates as short,",
+				"          {Carbohydrates (% Daily Value)} as short,",
+				"          {Dietary Fiber} as short,",
+				"          {Dietary Fiber (% Daily Value)} as short,",
+				"          Sugars as short,",
+				"          Protein as short,",
+				"          {Vitamin A (% Daily Value)} as short,",
+				"          {Vitamin C (% Daily Value)} as short,",
+				"          {Calcium (% Daily Value)} as short,",
+				"          {Iron (% Daily Value)} as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source",
+				"source select(mapColumn(",
+				"          Category,",
+				"          Item,",
+				"          Calories",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 window(over(Category),",
+				"     desc(Calories, true),",
+				"     rnk = denseRank()) ~> window1",
+				"window1 filter(rnk ==1) ~> filter1",
+				"filter1 sort(desc(Calories, true)) ~> sort1",
+				"sort1 select(mapColumn(",
+				"          Category,",
+				"          Item,",
+				"          Calories",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"source select(mapColumn(",
+				"          Category,",
+				"          Item,",
+				"          {Serving Size}",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"select3 derive(Serving_size_grms = replace(iif(size(split({Serving Size}, '(')) ==2,split({Serving Size}, '(')[2],''),\r",
+				"right(iif(size(split({Serving Size}, '(')) ==2,split({Serving Size}, '(')[2],''), 3),'')) ~> derivedColumn1",
+				"derivedColumn1 window(over(Item),",
+				"     desc(Serving_size_grms, true),",
+				"     rank = denseRank()) ~> window2",
+				"window2 filter(toInteger(Serving_size_grms) > 0 && rank==1) ~> filter2",
+				"filter2 sort(desc(toInteger(Serving_size_grms), true)) ~> sort2",
+				"sort2 select(mapColumn(",
+				"          Category,",
+				"          Item,",
+				"          {Serving Size},",
+				"          Serving_size_grms",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     truncate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Category,",
+				"          Item,",
+				"          Calories",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> loadedintosqldb",
+				"select4 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['foodmenu'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> BLOBsink",
+				"select4 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          category as string,",
+				"          item as string,",
+				"          serving_size as string,",
+				"          serving_size_grms as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     truncate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          category = Category,",
+				"          item = Item,",
+				"          serving_size = {Serving Size},",
+				"          serving_size_grms = Serving_size_grms",
+				"     )) ~> SQLsink"
+			]
+		}
+	}
+}
