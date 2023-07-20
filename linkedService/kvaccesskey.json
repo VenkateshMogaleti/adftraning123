@@ -1,0 +1,10 @@
+{
+	"name": "kvaccesskey",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://kvadfdemo12.vault.azure.net/"
+		}
+	}
+}
