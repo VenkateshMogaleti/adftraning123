@@ -1,0 +1,26 @@
+{
+	"name": "DS_SQL_GENERIC",
+	"properties": {
+		"parameters": {
+			"connectionsecret": {
+				"type": "string",
+				"defaultValue": "adfdemo-sqlconnection"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "kvaccesskey",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": {
+					"value": "@linkedService().connectionsecret",
+					"type": "Expression"
+				}
+			}
+		}
+	}
+}
