@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "Demoadf166"
+		},
+		"AzureSqlDatabase1_connectionString": {
+			"value": ""
+		},
+		"ADLS_GENERIC_properties_typeProperties_url": {
+			"value": "@{linkedService().adls_url}"
+		},
+		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
+			"value": "https://adfdemo166sa.blob.core.windows.net/"
+		},
+		"DS_SQL_GENERIC_properties_typeProperties_connectionString_secretName": {
+			"value": "@linkedService().connectionsecret"
+		},
+		"kvaccesskey_properties_typeProperties_baseUrl": {
+			"value": "https://kvadfdemo12.vault.azure.net/"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}

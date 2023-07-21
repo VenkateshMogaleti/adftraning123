@@ -1,0 +1,1328 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "Demoadf166"
+		},
+		"AzureSqlDatabase1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureSqlDatabase1'"
+		},
+		"AzureBlobStorage1_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://adfdemo166sa.blob.core.windows.net/"
+		},
+		"kvaccesskey_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kvadfdemo12.vault.azure.net/"
+		},
+		"ADLS_GENERIC_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{linkedService().adls_url}"
+		},
+		"DS_SQL_GENERIC_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "@linkedService().connectionsecret"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "val",
+							"value": {
+								"value": "@concat('This is first ',pipeline().DataFactory,' welcome ',pipeline().parameters.par)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Filter1",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@variables('numbers')",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@greater(item(),3)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter1').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Set variable2",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "newnumber",
+										"value": {
+											"value": "@string(item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"par": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"val": {
+						"type": "String"
+					},
+					"numbers": {
+						"type": "Array",
+						"defaultValue": [
+							1,
+							2,
+							3,
+							4,
+							5,
+							6
+						]
+					},
+					"newnumber": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-07-17T16:55:27Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"serviceEndpoint": "[parameters('AzureBlobStorage1_properties_typeProperties_serviceEndpoint')]",
+					"accountKind": "StorageV2"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureSqlDatabase1_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/kvaccesskey')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('kvaccesskey_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_bloboutput')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"container": "output"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_foodmenu')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "category",
+						"type": "varchar"
+					},
+					{
+						"name": "item",
+						"type": "varchar"
+					},
+					{
+						"name": "serving_size",
+						"type": "varchar"
+					},
+					{
+						"name": "serving_size_grms",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "foodmenu"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_menucsv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "menu.csv",
+						"container": "input"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Category",
+						"type": "String"
+					},
+					{
+						"name": "Item",
+						"type": "String"
+					},
+					{
+						"name": "Serving Size",
+						"type": "String"
+					},
+					{
+						"name": "Calories",
+						"type": "String"
+					},
+					{
+						"name": "Calories from Fat",
+						"type": "String"
+					},
+					{
+						"name": "Total Fat",
+						"type": "String"
+					},
+					{
+						"name": "Total Fat (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Saturated Fat",
+						"type": "String"
+					},
+					{
+						"name": "Saturated Fat (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Trans Fat",
+						"type": "String"
+					},
+					{
+						"name": "Cholesterol",
+						"type": "String"
+					},
+					{
+						"name": "Cholesterol (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Sodium",
+						"type": "String"
+					},
+					{
+						"name": "Sodium (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Carbohydrates",
+						"type": "String"
+					},
+					{
+						"name": "Carbohydrates (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Dietary Fiber",
+						"type": "String"
+					},
+					{
+						"name": "Dietary Fiber (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Sugars",
+						"type": "String"
+					},
+					{
+						"name": "Protein",
+						"type": "String"
+					},
+					{
+						"name": "Vitamin A (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Vitamin C (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Calcium (% Daily Value)",
+						"type": "String"
+					},
+					{
+						"name": "Iron (% Daily Value)",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_sqldb166')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "menu"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ADLS_GENERIC')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"adls_url": {
+						"type": "string",
+						"defaultValue": "https://adlsadfdemosa.dfs.core.windows.net"
+					},
+					"secretaccess": {
+						"type": "string",
+						"defaultValue": "adlsaccesskey"
+					}
+				},
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ADLS_GENERIC_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "kvaccesskey",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": {
+							"value": "@linkedService().secretaccess",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/kvaccesskey')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_GENERIC')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"connectionsecret": {
+						"type": "string",
+						"defaultValue": "adfdemo-sqlconnection"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "kvaccesskey",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": {
+							"value": "[parameters('DS_SQL_GENERIC_properties_typeProperties_connectionString_secretName')]",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/kvaccesskey')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_GENERIC')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ADLS_GENERIC",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"adls_url": {
+							"value": "@dataset().adls_url",
+							"type": "Expression"
+						},
+						"secretaccess": {
+							"value": "@dataset().secretaccesskey",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"Container": {
+						"type": "string"
+					},
+					"folder": {
+						"type": "string"
+					},
+					"filename": {
+						"type": "string"
+					},
+					"adls_url": {
+						"type": "string"
+					},
+					"secretaccesskey": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folder",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().Container",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ADLS_GENERIC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQLCON_GENERIC')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "DS_SQL_GENERIC",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"connectionsecret": {
+							"value": "@dataset().connectionsecret",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"connectionsecret": {
+						"type": "string"
+					},
+					"schemaname": {
+						"type": "string"
+					},
+					"tablename": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().schemaname",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().tablename",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/DS_SQL_GENERIC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_menu')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_menucsv",
+								"type": "DatasetReference"
+							},
+							"name": "source"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_sqldb166",
+								"type": "DatasetReference"
+							},
+							"name": "loadedintosqldb"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_bloboutput",
+								"type": "DatasetReference"
+							},
+							"name": "BLOBsink"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_foodmenu",
+								"type": "DatasetReference"
+							},
+							"name": "SQLsink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select1"
+						},
+						{
+							"name": "window1"
+						},
+						{
+							"name": "filter1"
+						},
+						{
+							"name": "sort1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "select3"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "window2"
+						},
+						{
+							"name": "filter2"
+						},
+						{
+							"name": "sort2"
+						},
+						{
+							"name": "select4"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Category as string,",
+						"          Item as string,",
+						"          {Serving Size} as string,",
+						"          Calories as short,",
+						"          {Calories from Fat} as short,",
+						"          {Total Fat} as double,",
+						"          {Total Fat (% Daily Value)} as short,",
+						"          {Saturated Fat} as double,",
+						"          {Saturated Fat (% Daily Value)} as short,",
+						"          {Trans Fat} as double,",
+						"          Cholesterol as short,",
+						"          {Cholesterol (% Daily Value)} as short,",
+						"          Sodium as short,",
+						"          {Sodium (% Daily Value)} as short,",
+						"          Carbohydrates as short,",
+						"          {Carbohydrates (% Daily Value)} as short,",
+						"          {Dietary Fiber} as short,",
+						"          {Dietary Fiber (% Daily Value)} as short,",
+						"          Sugars as short,",
+						"          Protein as short,",
+						"          {Vitamin A (% Daily Value)} as short,",
+						"          {Vitamin C (% Daily Value)} as short,",
+						"          {Calcium (% Daily Value)} as short,",
+						"          {Iron (% Daily Value)} as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source",
+						"source select(mapColumn(",
+						"          Category,",
+						"          Item,",
+						"          Calories",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 window(over(Category),",
+						"     desc(Calories, true),",
+						"     rnk = denseRank()) ~> window1",
+						"window1 filter(rnk ==1) ~> filter1",
+						"filter1 sort(desc(Calories, true)) ~> sort1",
+						"sort1 select(mapColumn(",
+						"          Category,",
+						"          Item,",
+						"          Calories",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"source select(mapColumn(",
+						"          Category,",
+						"          Item,",
+						"          {Serving Size}",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select3",
+						"select3 derive(Serving_size_grms = replace(iif(size(split({Serving Size}, '(')) ==2,split({Serving Size}, '(')[2],''),\r",
+						"right(iif(size(split({Serving Size}, '(')) ==2,split({Serving Size}, '(')[2],''), 3),'')) ~> derivedColumn1",
+						"derivedColumn1 window(over(Item),",
+						"     desc(Serving_size_grms, true),",
+						"     rank = denseRank()) ~> window2",
+						"window2 filter(toInteger(Serving_size_grms) > 0 && rank==1) ~> filter2",
+						"filter2 sort(desc(toInteger(Serving_size_grms), true)) ~> sort2",
+						"sort2 select(mapColumn(",
+						"          Category,",
+						"          Item,",
+						"          {Serving Size},",
+						"          Serving_size_grms",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select4",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     truncate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          Category,",
+						"          Item,",
+						"          Calories",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> loadedintosqldb",
+						"select4 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['foodmenu'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> BLOBsink",
+						"select4 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          category as string,",
+						"          item as string,",
+						"          serving_size as string,",
+						"          serving_size_grms as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     truncate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          category = Category,",
+						"          item = Item,",
+						"          serving_size = {Serving Size},",
+						"          serving_size_grms = Serving_size_grms",
+						"     )) ~> SQLsink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_menucsv')]",
+				"[concat(variables('factoryId'), '/datasets/ds_sqldb166')]",
+				"[concat(variables('factoryId'), '/datasets/ds_bloboutput')]",
+				"[concat(variables('factoryId'), '/datasets/ds_foodmenu')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_ADLS_SQL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select *, 'test' as newschema from importconfi where Isenabled = 1",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_SQLCON_GENERIC",
+								"type": "DatasetReference",
+								"parameters": {
+									"connectionsecret": "adfdemo-sqlconnection",
+									"schemaname": "dbo",
+									"tablename": "menu"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup1').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "DS_ADLS_GENERIC",
+											"type": "DatasetReference",
+											"parameters": {
+												"Container": {
+													"value": "@item().container",
+													"type": "Expression"
+												},
+												"folder": {
+													"value": "@item().folder",
+													"type": "Expression"
+												},
+												"filename": {
+													"value": "@item().filename1",
+													"type": "Expression"
+												},
+												"adls_url": "https://adlsadfdemosa.dfs.core.windows.net",
+												"secretaccesskey": "adlsaccesskey"
+											}
+										},
+										"fieldList": [
+											"exists"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@activity('Get Metadata1').output.exists",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "Append variable1",
+												"type": "AppendVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "tableextracted",
+													"value": {
+														"value": "@concat(item().container,'/',item().folder,'/',item().filename1)",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "Copy data1",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "@{concat('Truncate table ',item().newschema,'.',item().tablename)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "DS_ADLS_GENERIC",
+														"type": "DatasetReference",
+														"parameters": {
+															"Container": {
+																"value": "@item().container",
+																"type": "Expression"
+															},
+															"folder": {
+																"value": "@item().folder",
+																"type": "Expression"
+															},
+															"filename": {
+																"value": "@item().filename1",
+																"type": "Expression"
+															},
+															"adls_url": "https://adlsadfdemosa.dfs.core.windows.net",
+															"secretaccesskey": "adlsaccesskey"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DS_SQLCON_GENERIC",
+														"type": "DatasetReference",
+														"parameters": {
+															"connectionsecret": "adfdemo-sqlconnection",
+															"schemaname": {
+																"value": "@item().newschema",
+																"type": "Expression"
+															},
+															"tablename": {
+																"value": "@item().tablename",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"tableextracted": {
+						"type": "Array"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQLCON_GENERIC')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_GENERIC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_ADLS_GENERIC",
+								"type": "DatasetReference",
+								"parameters": {
+									"Container": "input",
+									"folder": "source",
+									"filename": "menu.csv",
+									"adls_url": "https://adlsadfdemosa.dfs.core.windows.net",
+									"secretaccesskey": "adlsaccesskey"
+								}
+							},
+							"fieldList": [
+								"columnCount",
+								"itemType",
+								"itemName",
+								"structure",
+								"size"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_GENERIC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline3')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_SQLCON_GENERIC",
+								"type": "DatasetReference",
+								"parameters": {
+									"connectionsecret": "adfdemo-sqlconnection",
+									"schemaname": "dbo",
+									"tablename": "menu"
+								}
+							},
+							"fieldList": [
+								"columnCount",
+								"structure"
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQLCON_GENERIC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline4')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select * from dbo.importconfi WHERE Isenabled = 1",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_SQLCON_GENERIC",
+								"type": "DatasetReference",
+								"parameters": {
+									"connectionsecret": "adfdemo-sqlconnection",
+									"schemaname": "dbo",
+									"tablename": "menu"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup1').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy data1",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_SQLCON_GENERIC",
+											"type": "DatasetReference",
+											"parameters": {
+												"connectionsecret": "adfdemo-sqlconnection",
+												"schemaname": {
+													"value": "@item().schemaname",
+													"type": "Expression"
+												},
+												"tablename": {
+													"value": "@item().tablename",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_ADLS_GENERIC",
+											"type": "DatasetReference",
+											"parameters": {
+												"Container": {
+													"value": "@item().Container",
+													"type": "Expression"
+												},
+												"folder": {
+													"value": "@item().folder",
+													"type": "Expression"
+												},
+												"filename": {
+													"value": "@concat(item().filename1,'_',utcNow())",
+													"type": "Expression"
+												},
+												"adls_url": "https://adlsadfdemosa.dfs.core.windows.net",
+												"secretaccesskey": "adlsaccesskey"
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQLCON_GENERIC')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_GENERIC')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_menucategory')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_menu",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source": {},
+									"loadedintosqldb": {},
+									"BLOBsink": {},
+									"SQLsink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-07-13T17:19:42Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_menu')]"
+			]
+		}
+	]
+}
