@@ -10,8 +10,8 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"fileName": "menu.csv",
-				"container": "input"
+				"fileName": "test_menu.csv",
+				"container": "output"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
